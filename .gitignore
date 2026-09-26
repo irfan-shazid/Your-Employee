@@ -1,0 +1,17 @@
+# Private implementation notes — kept locally, not committed
+implemented.md
+
+# Dependencies & build output (server/ and mobile/ have their own, more detailed ignores)
+node_modules/
+dist/
+.expo/
+
+# Secrets & machine-specific config — commit the .env.example files instead
+.env
+.env.*
+!.env.example
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log

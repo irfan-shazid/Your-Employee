@@ -1,0 +1,415 @@
+// Your Employee — database schema
+// Better Auth core tables: User, Session, Account, Verification
+// Marketplace tables: profiles, categories, jobs, applications, hires, reviews, payments, notifications, media
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  WORKER
+  EMPLOYER
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Availability {
+  FULL_TIME
+  PART_TIME
+  DAILY
+  WEEKENDS
+}
+
+enum EmployerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum WageType {
+  HOURLY
+  DAILY
+  MONTHLY
+  FIXED
+}
+
+enum JobStatus {
+  PENDING_PAYMENT
+  OPEN
+  FILLED
+  CLOSED
+  REMOVED
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum HireSource {
+  APPLICATION
+  DIRECT
+}
+
+enum HireStatus {
+  PENDING_PAYMENT
+  OFFERED
+  ACTIVE
+  COMPLETED
+  DECLINED
+  CANCELLED
+}
+
+enum PaymentPurpose {
+  WORKER_SUBSCRIPTION
+  JOB_POST
+  HIRE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// ─── Better Auth ────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          Role?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions        Session[]
+  accounts        Account[]
+  workerProfile   WorkerProfile?
+  employerProfile EmployerProfile?
+  payments        Payment[]
+  notifications   Notification[]
+  media           Media[]
+
+  @@index([role])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ─── Marketplace ────────────────────────────────────────────────────────────
+
+model Category {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  nameBn    String
+  icon      String // Ionicons glyph name rendered by the app
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workers WorkerProfile[]
+  jobs    Job[]
+  hires   Hire[]
+
+  @@index([isActive, sortOrder])
+}
+
+model WorkerProfile {
+  id                    String         @id @default(cuid())
+  userId                String         @unique
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName              String
+  phone                 String
+  gender                Gender
+  dateOfBirth           DateTime?
+  nidNumber             String
+  nidImageId            String?
+  avatarUrl             String?
+  division              String
+  district              String
+  area                  String
+  address               String?
+  bio                   String?
+  skills                String[]
+  experienceYears       Int            @default(0)
+  expectedWage          Int
+  wageType              WageType       @default(DAILY)
+  availability          Availability   @default(DAILY)
+  isAvailable           Boolean        @default(true)
+  status                ApprovalStatus @default(PENDING)
+  rejectionReason       String?
+  submittedAt           DateTime       @default(now())
+  reviewedAt            DateTime?
+  subscriptionExpiresAt DateTime?
+  ratingAvg             Float          @default(0)
+  ratingCount           Int            @default(0)
+  jobsCompleted         Int            @default(0)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  categories   Category[]
+  applications Application[]
+  hires        Hire[]
+  reviews      Review[]
+
+  @@index([status, submittedAt])
+  @@index([status, isAvailable, subscriptionExpiresAt])
+  @@index([district])
+}
+
+model EmployerProfile {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            EmployerType   @default(INDIVIDUAL)
+  fullName        String
+  companyName     String?
+  phone           String
+  nidNumber       String?
+  tradeLicense    String?
+  avatarUrl       String?
+  division        String
+  district        String
+  area            String
+  address         String?
+  about           String?
+  status          ApprovalStatus @default(PENDING)
+  rejectionReason String?
+  submittedAt     DateTime       @default(now())
+  reviewedAt      DateTime?
+  hireCredits     Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  jobs    Job[]
+  hires   Hire[]
+  reviews Review[]
+
+  @@index([status, submittedAt])
+}
+
+model Job {
+  id                String          @id @default(cuid())
+  employerId        String
+  employer          EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  categoryId        String
+  category          Category        @relation(fields: [categoryId], references: [id])
+  title             String
+  description       String
+  wageAmount        Int
+  wageType          WageType        @default(DAILY)
+  workersNeeded     Int             @default(1)
+  startDate         DateTime
+  durationDays      Int             @default(1)
+  division          String
+  district          String
+  area              String
+  address           String?
+  isUrgent          Boolean         @default(false)
+  status            JobStatus       @default(PENDING_PAYMENT)
+  publishedAt       DateTime?
+  applicationsCount Int             @default(0)
+  hiredCount        Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  applications Application[]
+  hires        Hire[]
+
+  @@index([status, publishedAt])
+  @@index([status, categoryId, district])
+  @@index([employerId, createdAt])
+}
+
+model Application {
+  id        String            @id @default(cuid())
+  jobId     String
+  job       Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId  String
+  worker    WorkerProfile     @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  message   String?
+  status    ApplicationStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  hire Hire?
+
+  @@unique([jobId, workerId])
+  @@index([workerId, createdAt])
+}
+
+model Hire {
+  id             String          @id @default(cuid())
+  employerId     String
+  employer       EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  workerId       String
+  worker         WorkerProfile   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  jobId          String?
+  job            Job?            @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  applicationId  String?         @unique
+  application    Application?    @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  categoryId     String
+  category       Category        @relation(fields: [categoryId], references: [id])
+  source         HireSource
+  title          String
+  description    String?
+  wageAmount     Int
+  wageType       WageType        @default(DAILY)
+  startDate      DateTime
+  division       String
+  district       String
+  area           String
+  address        String?
+  status         HireStatus      @default(PENDING_PAYMENT)
+  paidWithCredit Boolean         @default(false)
+  offeredAt      DateTime?
+  respondedAt    DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  review Review?
+
+  @@index([employerId, createdAt])
+  @@index([workerId, status])
+}
+
+model Review {
+  id         String          @id @default(cuid())
+  hireId     String          @unique
+  hire       Hire            @relation(fields: [hireId], references: [id], onDelete: Cascade)
+  employerId String
+  employer   EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  workerId   String
+  worker     WorkerProfile   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?
+  createdAt  DateTime        @default(now())
+
+  @@index([workerId, createdAt])
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  tranId         String         @unique
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose        PaymentPurpose
+  referenceId    String?
+  amount         Int
+  currency       String         @default("BDT")
+  status         PaymentStatus  @default(PENDING)
+  valId          String?
+  bankTranId     String?
+  cardType       String?
+  failureReason  String?
+  appRedirectUrl String?
+  gatewayData    Json?
+  paidAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([purpose, referenceId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  mime      String
+  size      Int
+  data      Bytes
+  isPrivate Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}
