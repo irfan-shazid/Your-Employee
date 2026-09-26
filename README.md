@@ -1,67 +1,90 @@
-<div align="center">
+<h1 align="center">Your Employee</h1>
 
-# Your Employee
+<p align="center">
+  <strong>A verified marketplace that connects daily workers with employers across Bangladesh.</strong>
+</p>
 
-**A verified marketplace that connects daily workers with employers across Bangladesh.**
-<br/>
-কাজ খুঁজুন, বিশ্বস্ত কর্মী নিন
+<p align="center">
+  <img src="https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white" alt="Expo SDK 57" />
+  <img src="https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react&logoColor=black" alt="React Native 0.86" />
+  <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/API-Hono%204-E36002?logo=hono&logoColor=white" alt="Hono 4" />
+  <img src="https://img.shields.io/badge/ORM-Prisma%207-2D3748?logo=prisma&logoColor=white" alt="Prisma 7" />
+  <img src="https://img.shields.io/badge/DB-Neon%20Postgres-00E599?logo=postgresql&logoColor=white" alt="Neon Postgres" />
+  <img src="https://img.shields.io/badge/Payments-SSLCommerz-0E8F63" alt="SSLCommerz" />
+</p>
 
-![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white)
-![React Native 0.86](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
-![Hono](https://img.shields.io/badge/API-Hono%204-E36002?logo=hono&logoColor=white)
-![Prisma 7](https://img.shields.io/badge/ORM-Prisma%207-2D3748?logo=prisma&logoColor=white)
-![Neon Postgres](https://img.shields.io/badge/DB-Neon%20Postgres-00E599?logo=postgresql&logoColor=white)
-![SSLCommerz](https://img.shields.io/badge/Payments-SSLCommerz-0E8F63)
+<p align="center">
+  <a href="#features">Features</a> &nbsp;•&nbsp;
+  <a href="#getting-started">Getting started</a> &nbsp;•&nbsp;
+  <a href="#architecture">Architecture</a> &nbsp;•&nbsp;
+  <a href="#api-reference">API</a> &nbsp;•&nbsp;
+  <a href="#deployment">Deployment</a>
+</p>
 
-</div>
-
----
-
-## Table of contents
-
-- [Overview](#overview)
-- [Screenshots](#screenshots)
-- [How it works](#how-it-works)
-- [Features](#features)
-- [Tech stack](#tech-stack)
-- [Architecture](#architecture)
-- [Project structure](#project-structure)
-- [Getting started](#getting-started)
-- [Environment variables](#environment-variables)
-- [Scripts](#scripts)
-- [Testing](#testing)
-- [API reference](#api-reference)
-- [Security](#security)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Project status & roadmap](#project-status--roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+<p align="center">
+  <img src="docs/screenshots/worker-job-feed.png" width="200" alt="Job feed" />
+  &nbsp;
+  <img src="docs/screenshots/employer-home.png" width="200" alt="Employer home" />
+  &nbsp;
+  <img src="docs/screenshots/admin-overview.png" width="200" alt="Admin dashboard" />
+</p>
 
 ---
 
-## Overview
+## About
 
-Millions of people in Bangladesh find daily work (masons, electricians, porters, cooks, drivers) through word of mouth, with no way to prove who they are or what they've done. **Your Employee** gives them a verified profile and gives employers a safe way to find and hire them.
-
-The app has three roles:
+Daily work such as masonry, electrical repairs, loading, cooking or driving is still mostly found by word of mouth, with no way for workers to prove who they are or what they have done. **Your Employee** gives workers a verified profile and gives employers a safe, simple way to find and hire them.
 
 | Role | What they do |
-|---|---|
-| 👷 **Worker** | Registers with NID and skills, gets verified, applies to jobs and receives direct offers |
-| 🏢 **Employer** | Registers as an individual or a business, gets verified, posts jobs or hires workers directly |
-| 🛡️ **Admin** | Approves profiles, moderates jobs, manages categories and watches revenue |
+| --- | --- |
+| **Worker** | Registers with their national ID and skills, gets verified, applies to jobs and receives direct offers |
+| **Employer** | Registers as an individual or a business, gets verified, posts jobs or hires workers directly |
+| **Admin** | Approves profiles, moderates jobs, manages categories and tracks revenue |
 
-Revenue comes from small fees paid through **SSLCommerz** (bKash, Nagad, Rocket, cards):
+The platform earns small fees, paid through **SSLCommerz** (bKash, Nagad, Rocket and cards):
 
 | Fee | Paid by | Default |
-|---|---|---|
-| Worker plan (30 days) | Worker | **৳50** |
-| Job post | Employer | **৳10** |
-| Hire (applicant or direct offer) | Employer | **৳10** |
+| --- | --- | --- |
+| Worker plan (30 days) | Worker | **BDT 50** |
+| Job post | Employer | **BDT 10** |
+| Hire (applicant or direct offer) | Employer | **BDT 10** |
 
-All prices are set in `server/.env`.
+All prices are configurable in `server/.env`.
+
+---
+
+## Features
+
+**Accounts & verification**
+- Email/password and Google sign-in, with no verification codes
+- 30-day sessions stored securely on the device, and in-app account deletion
+- Role selection and multi-step profiles validated with regex (Bangladeshi mobile numbers, 10/13/17-digit NIDs)
+- All 8 divisions and 64 districts
+- Admin approval before anyone can use the marketplace; NID photos stay private
+
+**Marketplace**
+- Job feed with category, district and urgency filters, plus search
+- Applications, shortlisting, hiring and direct offers to workers found in the directory
+- Free hire credits when a paid offer is declined
+- Reviews and ratings after a job is completed
+- In-app notifications with unread badges
+
+**Payments**
+- SSLCommerz checkout in an in-app browser, with a deep link back into the app
+- Every payment is re-validated on the server, and duplicate callbacks are ignored
+- Payments that never called back are reconciled automatically
+
+**Admin dashboard (inside the same app)**
+- Monthly and all-time revenue, a 7-day revenue chart, approval queues with NID photos
+- Users, payments, job moderation, and categories with English and Bengali names
+
+**Experience & performance**
+- Light, dark and automatic themes; skeleton loaders, pull-to-refresh, infinite scroll, haptics and smooth animations
+- Session caching on the server and lean list queries
+- Details prefetched as soon as a card is touched
+- Polling pauses while the app is in the background
+- Images are resized on the phone and cached
 
 ---
 
@@ -69,98 +92,85 @@ All prices are set in `server/.env`.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/welcome.png" width="200" alt="Welcome screen"/><br/><sub>Welcome</sub></td>
-    <td align="center"><img src="docs/screenshots/worker-onboarding.png" width="200" alt="Worker onboarding form"/><br/><sub>Worker registration</sub></td>
-    <td align="center"><img src="docs/screenshots/worker-job-feed.png" width="200" alt="Worker job feed"/><br/><sub>Job feed</sub></td>
-    <td align="center"><img src="docs/screenshots/job-detail.png" width="200" alt="Job details"/><br/><sub>Job details</sub></td>
+    <td align="center"><img src="docs/screenshots/sign-up.png" width="190" alt="Sign up" /><br /><sub>Sign up</sub></td>
+    <td align="center"><img src="docs/screenshots/worker-onboarding.png" width="190" alt="Worker registration" /><br /><sub>Worker registration</sub></td>
+    <td align="center"><img src="docs/screenshots/worker-job-feed.png" width="190" alt="Job feed" /><br /><sub>Job feed</sub></td>
+    <td align="center"><img src="docs/screenshots/job-detail.png" width="190" alt="Job details" /><br /><sub>Job details</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/employer-home.png" width="200" alt="Employer home"/><br/><sub>Employer home</sub></td>
-    <td align="center"><img src="docs/screenshots/hire-detail.png" width="200" alt="Hire with unlocked contact"/><br/><sub>Hire & contact unlock</sub></td>
-    <td align="center"><img src="docs/screenshots/admin-overview.png" width="200" alt="Admin dashboard"/><br/><sub>Admin dashboard</sub></td>
-    <td align="center"><img src="docs/screenshots/dark-mode.png" width="200" alt="Dark mode"/><br/><sub>Dark mode</sub></td>
+    <td align="center"><img src="docs/screenshots/employer-home.png" width="190" alt="Employer home" /><br /><sub>Employer home</sub></td>
+    <td align="center"><img src="docs/screenshots/hire-detail.png" width="190" alt="Hire details" /><br /><sub>Hire & unlocked contact</sub></td>
+    <td align="center"><img src="docs/screenshots/admin-overview.png" width="190" alt="Admin dashboard" /><br /><sub>Admin dashboard</sub></td>
+    <td align="center"><img src="docs/screenshots/dark-mode.png" width="190" alt="Dark mode" /><br /><sub>Dark mode</sub></td>
   </tr>
 </table>
-
-<sub>Captured from the web build at phone size, using sample data.</sub>
 
 ---
 
 ## How it works
 
-**Workers**
-1. Sign up with email/password or Google, then choose **"I want work"**.
-2. Fill in a 4-step profile: photo, name as on NID, mobile, date of birth, NID number and optional NID photo; division → district → area; up to 5 work categories and skills; expected wage and availability.
-3. An admin reviews the profile. The app shows the status and moves on by itself once approved.
-4. Approved workers can browse jobs for free. The **৳50 plan** lets them apply, appear in employer searches and receive direct offers. Renewing early adds days on top.
+### Workers
 
-**Employers**
-1. Sign up, choose **"I want to hire"**, and register as an individual/household or a business (NID or trade licence required). An admin approves the profile.
-2. **Post a job**: it goes live after the ৳10 payment, and available workers in the same category and district are notified.
-3. Shortlist or reject applicants, then **hire (৳10)**. The hire is confirmed immediately.
-4. Or **find workers directly** by category, district, skill or rating and send an **offer (৳10)**. The worker accepts or declines.
-5. Mark the work completed and **rate the worker** (1–5★ with a comment).
+1. Sign up with email or Google and choose **"I want work"**.
+2. Complete a four-step profile:
+   - photo, legal name, mobile number, date of birth, NID number and an optional NID photo;
+   - location (division, district and area);
+   - up to five work categories, plus skills and experience;
+   - expected wage and availability.
+3. Wait for an admin to review the profile. The app moves on automatically once it is approved.
+4. Browse jobs for free. The **BDT 50 plan** unlocks applying, appearing in employer searches and receiving direct offers. Renewing early adds the days on top.
 
-**Fair-play rules**
-- Phone numbers and addresses are revealed to both sides **only after a hire is confirmed**; that's what the hiring fee pays for.
-- If a worker **declines** a paid offer, or the employer cancels it before an answer, the employer gets a **free hire credit** instead of a cash refund.
-- Suspending an employer closes their open jobs. Editing identity details (name, NID…) on an approved profile sends it back for review.
+### Employers
 
----
+1. Sign up, choose **"I want to hire"**, and register as an individual or a business. An NID or trade licence is required, and an admin must approve the profile.
+2. **Post a job.** It goes live after the BDT 10 payment, and available workers in the same category and district are notified.
+3. Shortlist or reject applicants, then **hire for BDT 10**. The hire is confirmed immediately.
+4. **Or find workers directly** by category, district, skill or rating, and send an **offer for BDT 10**.
+5. Mark the work completed and **rate the worker** from 1 to 5 stars.
 
-## Features
+### Fair-play rules
 
-- **Auth:** email/password and Google sign-in (no verification codes), 30-day sessions stored in the device's SecureStore, account deletion.
-- **Onboarding & verification:** role selection, multi-step forms validated with regex (Bangladeshi mobile `01[3-9]XXXXXXXX`, NID 10/13/17 digits), all 8 divisions and 64 districts, NID photo kept private.
-- **Marketplace:** job feed with category/district/urgency filters and search, applications, shortlisting, hires, direct offers, hire credits, reviews and ratings.
-- **Payments:** SSLCommerz checkout in an in-app browser, a deep link back into the app, and every payment re-validated on the server. Duplicate callbacks are ignored, and payments that never called back are reconciled.
-- **Admin dashboard (in the same app):** revenue this month and all time, 7-day revenue chart (Bangladesh days), approval queues with the NID photo, users, payments, job moderation and category management (English + বাংলা names).
-- **In-app notifications** with unread badges.
-- **UX:** light/dark/auto theme, skeleton loaders, pull-to-refresh, infinite scroll, haptics, spring animations, bottom sheets, empty and error states with retry.
-- **Performance:**
-  - server-side session cache, so repeat requests skip the database lookup;
-  - public list queries select only public columns;
-  - details prefetch as soon as a card is touched;
-  - polling pauses while the app is in the background;
-  - payments refresh only the cached data they change;
-  - images are resized on the phone and cached forever.
+- Phone numbers and addresses are shared **only after a hire is confirmed**. That is what the hiring fee pays for.
+- If a worker declines a paid offer, or the employer cancels it before the worker answers, the employer receives a **free hire credit**.
+- Changing identity details (name, NID) on an approved profile sends it back for review. Suspending an employer closes their open jobs.
 
 ---
 
 ## Tech stack
 
 | Layer | Technology |
-|---|---|
-| Mobile | [Expo SDK 57](https://docs.expo.dev) (React Native 0.86, React 19.2), Expo Router, React Compiler, TypeScript |
+| --- | --- |
+| Mobile | [Expo SDK 57](https://docs.expo.dev) · React Native 0.86 · React 19.2 · Expo Router · React Compiler |
 | State | [Redux Toolkit](https://redux-toolkit.js.org) + RTK Query (cache tags, infinite queries, optimistic updates) |
-| UI | Custom design system, Plus Jakarta Sans, Ionicons, Reanimated 4, FlashList 2, expo-image |
-| API | [Hono 4](https://hono.dev) on Node.js, Zod validation, in-memory rate limiting |
+| UI | Custom design system · Plus Jakarta Sans · Ionicons · Reanimated 4 · FlashList 2 · expo-image |
+| API | [Hono 4](https://hono.dev) on Node.js · Zod validation · rate limiting |
 | Auth | [Better Auth 1.7](https://www.better-auth.com) + `@better-auth/expo` |
-| Database | [Neon](https://neon.tech) Postgres via [Prisma ORM 7](https://www.prisma.io) (`prisma-client` generator, `@prisma/adapter-pg`) |
-| Payments | [SSLCommerz](https://developer.sslcommerz.com) REST API (sandbox + live) |
-| Tests | Node test runner + [PGlite](https://pglite.dev) (in-process Postgres), mocked SSLCommerz |
+| Database | [Neon](https://neon.tech) Postgres · [Prisma ORM 7](https://www.prisma.io) with `@prisma/adapter-pg` |
+| Payments | [SSLCommerz](https://developer.sslcommerz.com) (sandbox and live) |
+| Tests | Node test runner · [PGlite](https://pglite.dev) in-process Postgres · mocked SSLCommerz |
 
-No Docker required anywhere.
+No Docker required.
 
 ---
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-  subgraph App["📱 Expo app — workers · employers · admins"]
-    UI["Screens (Expo Router)"] --> Store["Redux Toolkit + RTK Query"]
-  end
+flowchart TB
+  App["Expo app<br/>Redux Toolkit + RTK Query"]
+  API["Hono API<br/>Better Auth · Zod · rate limits"]
+  DB[("Neon Postgres")]
+  SSL["SSLCommerz"]
+  Google["Google OAuth"]
 
-  Store -- "HTTPS + session cookie" --> API["Hono API<br/>Better Auth · Zod · rate limits"]
-  API -- "Prisma 7" --> DB[("Neon Postgres")]
-  API -- "create session / validate" --> SSL["SSLCommerz"]
-  SSL -- "success · fail · cancel · IPN" --> API
-  App -- "Google sign-in (in-app browser)" --> Google["Google OAuth"]
-  Google -- "callback" --> API
+  App -- "HTTPS + session cookie" --> API
+  API -- "Prisma 7" --> DB
+  API <-- "payments & callbacks" --> SSL
+  App -. "sign-in" .-> Google
+  Google -. "callback" .-> API
 ```
 
-**Payment flow**: the app never trusts the redirect alone.
+The app never trusts a payment redirect on its own:
 
 ```mermaid
 sequenceDiagram
@@ -168,15 +178,13 @@ sequenceDiagram
   participant S as API
   participant G as SSLCommerz
   A->>S: POST /api/payments/init
-  S->>G: create session
-  G-->>S: gateway URL
-  S-->>A: gateway URL
-  A->>G: customer pays in in-app browser
-  G->>S: POST success_url (val_id)
-  S->>G: validate val_id (amount, currency, tran_id)
-  S->>S: settle exactly once → activate plan / publish job / confirm hire
-  S-->>A: redirect to youremployee://payment-result
-  A->>S: GET /api/payments/:tranId (reconciles if still pending)
+  S->>G: Create payment session
+  G-->>A: Hosted checkout (in-app browser)
+  G->>S: POST success URL with val_id
+  S->>G: Validate amount, currency and transaction
+  S->>S: Settle exactly once (plan, job or hire)
+  S-->>A: Deep link back to the app
+  A->>S: GET /api/payments/:tranId
   G-->>S: IPN (server-to-server backup)
 ```
 
@@ -184,43 +192,36 @@ sequenceDiagram
 
 ## Project structure
 
-Both apps are organised **by feature**.
-
-```
+```text
 .
-├── server/                    API
-│   ├── prisma/                schema.prisma · migrations/ · seed.ts
-│   ├── tests/                 end-to-end + unit tests (npm test)
+├── server/                  API
+│   ├── prisma/              schema, migrations, seed
+│   ├── tests/               end-to-end and unit tests
 │   └── src/
-│       ├── index.ts           starts the HTTP server
-│       ├── app.ts             middleware, rate limits, routes, error handling
-│       ├── config/            validated environment & pricing
-│       ├── db/                Prisma client, seed functions
-│       ├── lib/               auth, session cache, errors, validation, pagination,
-│       │                      rate limiter, notifications, SSLCommerz client
-│       ├── middleware/        session + role/approval guards
-│       ├── shared/            Zod field schemas, serializers, locations, categories
-│       └── modules/           account · jobs · applications · hires · workers ·
-│                              payments · notifications · admin · media · meta
-│                              (each: *.routes.ts → *.schemas.ts → *.service.ts)
-├── mobile/                    Expo app
+│       ├── app.ts           middleware, rate limits, routes, errors
+│       ├── index.ts         starts the HTTP server
+│       ├── config/          validated environment and pricing
+│       ├── db/              Prisma client and seed functions
+│       ├── lib/             auth, session cache, errors, validation, pagination, SSLCommerz client
+│       ├── middleware/      session, role and approval guards
+│       ├── shared/          Zod schemas, serializers, locations, categories
+│       └── modules/         account, jobs, applications, hires, workers,
+│                            payments, notifications, admin, media, meta
+├── mobile/                  Expo app
 │   └── src/
-│       ├── app/               screens only (Expo Router)
-│       ├── features/          per feature: api.ts + components + hooks
-│       │                      (account, auth, jobs, hires, workers, payments,
-│       │                       notifications, admin, meta)
-│       ├── components/        ui/ (design system) · lists/ · form/ · layout/
-│       ├── store/             Redux store, base API, slices
-│       ├── lib/ · hooks/      auth client, formatting, validation, image upload
-│       ├── theme/             light/dark tokens, typography, spacing
-│       └── types/             API response types
+│       ├── app/             screens (Expo Router)
+│       ├── features/        per-feature API, components and hooks
+│       ├── components/      design system, lists, form fields, layout
+│       ├── store/           Redux store and base API
+│       ├── lib/             auth client, formatting, validation, image upload
+│       ├── theme/           light and dark design tokens
+│       └── types/           API response types
 └── docs/screenshots/
 ```
 
 **Conventions:**
-- Server route files only parse input and call a service. Business rules live in `*.service.ts`.
-- Mobile screens compose feature components (`JobActionBar`, `HireActionBar`, `usePayment`, `useHireFlow`…).
-- Lists use the shared `InfiniteList`, and detail screens use `QueryFallback` for loading and error states.
+- Each server module has `*.routes.ts` (HTTP), `*.schemas.ts` (input rules) and `*.service.ts` (business logic).
+- Each mobile feature keeps its API endpoints, components and hooks together, and screens only compose them.
 
 ---
 
@@ -228,11 +229,11 @@ Both apps are organised **by feature**.
 
 ### Prerequisites
 
-- **Node.js 20.19+** (developed on Node 24) and npm
-- A **Postgres** database. [Neon](https://neon.tech) is recommended (free tier); any PostgreSQL 14+ works.
-- An **SSLCommerz sandbox** store: [register here](https://developer.sslcommerz.com/registration/)
-- **Expo Go** on your phone, or an Android emulator / iOS simulator
-- *(Optional)* a Google Cloud OAuth client for Google sign-in
+- Node.js **20.19 or newer**
+- A PostgreSQL database; a free [Neon](https://neon.tech) project is recommended
+- An [SSLCommerz sandbox store](https://developer.sslcommerz.com/registration/)
+- Expo Go on your phone, or an Android emulator / iOS simulator
+- *Optional:* a Google Cloud OAuth client for Google sign-in
 
 ### 1. Install
 
@@ -240,7 +241,7 @@ Both apps are organised **by feature**.
 git clone <your-repo-url> your-employee
 cd your-employee
 
-cd server && npm install      # also generates the Prisma client
+cd server && npm install
 cd ../mobile && npm install
 ```
 
@@ -251,17 +252,17 @@ cd server
 cp .env.example .env
 ```
 
-Fill in at least these (full list in [Environment variables](#environment-variables)):
+Fill in at least the following. The complete list is under [Configuration](#configuration).
 
 ```dotenv
-DATABASE_URL=postgresql://…-pooler.…neon.tech/neondb?sslmode=require   # pooled
-DIRECT_URL=postgresql://….neon.tech/neondb?sslmode=require             # direct
-BETTER_AUTH_URL=http://192.168.0.105:4000        # your PC's LAN IP (see step 5)
-BETTER_AUTH_SECRET=<32+ random characters>
-SSLCOMMERZ_STORE_ID=<sandbox store id>
-SSLCOMMERZ_STORE_PASSWORD=<sandbox store password>
+DATABASE_URL=postgresql://USER:PASSWORD@ep-xxxx-pooler.region.aws.neon.tech/neondb?sslmode=require
+DIRECT_URL=postgresql://USER:PASSWORD@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+BETTER_AUTH_URL=http://192.168.0.105:4000
+BETTER_AUTH_SECRET=replace-with-32-or-more-random-characters
+SSLCOMMERZ_STORE_ID=your-sandbox-store-id
+SSLCOMMERZ_STORE_PASSWORD=your-sandbox-store-password
 ADMIN_EMAIL=you@example.com
-ADMIN_PASSWORD=<a strong password>
+ADMIN_PASSWORD=a-strong-password
 ```
 
 Generate a secret with:
@@ -273,16 +274,19 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ### 3. Create the database
 
 ```bash
-npx prisma migrate deploy   # creates all tables
-npm run db:seed             # 22 work categories + your admin account
+npx prisma migrate deploy
+npm run db:seed
 ```
+
+This creates all tables, the 22 work categories and your admin account.
 
 ### 4. Start the API
 
 ```bash
-npm run dev                 # http://localhost:4000 (restarts on changes)
-curl http://localhost:4000/api/health
+npm run dev
 ```
+
+Check it is running: `curl http://localhost:4000/api/health`
 
 ### 5. Run the app
 
@@ -291,85 +295,97 @@ cd ../mobile
 cp .env.example .env
 ```
 
-Set `EXPO_PUBLIC_API_URL` to your computer's **LAN IP** (run `ipconfig` on Windows, `ip addr`/`ifconfig` on macOS or Linux). `localhost` won't work from a phone.
+Point the app at your computer's **local network IP**. `localhost` does not work from a phone.
 
 ```dotenv
 EXPO_PUBLIC_API_URL=http://192.168.0.105:4000
 ```
 
 ```bash
-npx expo start              # scan the QR code with Expo Go
+npx expo start
 ```
 
-Sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` to open the admin dashboard. Create other accounts in the app to try the worker and employer flows. The admin dashboard also works in a browser: `npx expo start --web` (add `http://localhost:8081` to `CORS_ORIGINS`).
+Scan the QR code with Expo Go, then sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` to open the admin dashboard. Create more accounts in the app to try the worker and employer flows.
 
-### Google sign-in (optional)
+> **Tip:** the admin dashboard also runs in a browser with `npx expo start --web`. Add `http://localhost:8081` to `CORS_ORIGINS`.
 
-1. Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID → Web application**.
-2. Add the authorised redirect URI `<BETTER_AUTH_URL>/api/auth/callback/google`.
+### Google sign-in *(optional)*
+
+1. In Google Cloud Console, open **APIs & Services → Credentials → Create OAuth client ID → Web application**.
+2. Add the redirect URI `<BETTER_AUTH_URL>/api/auth/callback/google`.
 3. Put the client ID and secret in `server/.env`. The Google button appears automatically.
 
-> Google does not accept LAN IPs such as `192.168.x.x`. For local testing, expose the API over HTTPS with a tunnel (`npx cloudflared tunnel --url http://localhost:4000` or ngrok). Use that URL for **both** `BETTER_AUTH_URL` and `EXPO_PUBLIC_API_URL`.
+> Google rejects local network addresses such as `192.168.x.x`. For local testing, expose the API over HTTPS with a tunnel (`npx cloudflared tunnel --url http://localhost:4000` or ngrok). Use that URL for both `BETTER_AUTH_URL` and `EXPO_PUBLIC_API_URL`.
 
 ### SSLCommerz
 
-- **Sandbox:** keep `SSLCOMMERZ_IS_LIVE=false`. The success/fail/cancel pages are opened by the phone's browser, so a LAN `BETTER_AUTH_URL` works.
-- **IPN** (server-to-server confirmation) needs a public URL. The app also confirms payments itself, so IPN is a backup.
+- **Sandbox:** keep `SSLCOMMERZ_IS_LIVE=false`. The payer's browser opens the success, fail and cancel pages, so a local network URL works for testing.
+- **IPN:** server-to-server confirmation needs a public URL. The app also confirms payments itself, so IPN is a safety net.
 - **Live:** set `SSLCOMMERZ_IS_LIVE=true` and register `<your-domain>/api/payments/sslcommerz/ipn` as the IPN URL in the merchant panel.
 
 ---
 
-## Environment variables
+## Configuration
 
-### `server/.env`
+<details>
+<summary><strong>Server: <code>server/.env</code></strong></summary>
+
+<br />
 
 | Variable | Required | Description |
-|---|:---:|---|
-| `DATABASE_URL` | ✅ | Postgres connection used at runtime (Neon **pooled** URL, host contains `-pooler`) |
-| `DIRECT_URL` | ✅* | Direct (unpooled) URL used by Prisma migrations. *Falls back to `DATABASE_URL`* |
-| `BETTER_AUTH_URL` | ✅ | Public base URL of the API (used for auth and payment callbacks) |
-| `BETTER_AUTH_SECRET` | ✅ | 32+ random characters used to sign sessions |
+| --- | :---: | --- |
+| `DATABASE_URL` | Yes | Runtime connection string (the Neon **pooled** URL) |
+| `DIRECT_URL` | Yes | Direct connection used by Prisma migrations (falls back to `DATABASE_URL`) |
+| `BETTER_AUTH_URL` | Yes | Public base URL of the API, used for sign-in and payment callbacks |
+| `BETTER_AUTH_SECRET` | Yes | 32+ random characters used to sign sessions |
 | `PORT` | | API port (default `4000`) |
-| `NODE_ENV` | | `development` / `production` (production disables Expo Go deep links) |
+| `NODE_ENV` | | `development` or `production` |
 | `APP_SCHEME` | | Deep-link scheme; must match `mobile/app.json` (default `youremployee`) |
 | `CORS_ORIGINS` | | Comma-separated browser origins, e.g. the Expo web dev server |
-| `TRUST_PROXY` | | `true` behind Render/Railway/Nginx/Cloudflare so real client IPs are used |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | | Enables Google sign-in |
-| `SSLCOMMERZ_STORE_ID` / `SSLCOMMERZ_STORE_PASSWORD` | | Enables payments (without them, checkout is disabled or reports “Payments are not configured”) |
-| `SSLCOMMERZ_IS_LIVE` | | `false` = sandbox, `true` = live |
-| `WORKER_MONTHLY_FEE` · `JOB_POST_FEE` · `HIRE_FEE` | | Prices in BDT (defaults `50` · `10` · `10`) |
+| `TRUST_PROXY` | | `true` when running behind a proxy (Render, Railway, Nginx, Cloudflare) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | | Enable Google sign-in |
+| `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD` | | Enable payments |
+| `SSLCOMMERZ_IS_LIVE` | | `false` for sandbox, `true` for live |
+| `WORKER_MONTHLY_FEE`, `JOB_POST_FEE`, `HIRE_FEE` | | Prices in BDT (defaults `50`, `10`, `10`) |
 | `SUBSCRIPTION_DAYS` | | Length of the worker plan (default `30`) |
-| `ADMIN_EMAIL` · `ADMIN_PASSWORD` · `ADMIN_NAME` | | First admin, created by `npm run db:seed` |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | | First admin account, created by `npm run db:seed` |
 
-The server validates these at startup and prints exactly what is missing.
+The server validates these at startup and lists anything that is missing.
 
-### `mobile/.env`
+</details>
+
+<details>
+<summary><strong>Mobile: <code>mobile/.env</code></strong></summary>
+
+<br />
 
 | Variable | Description |
-|---|---|
-| `EXPO_PUBLIC_API_URL` | Base URL of the API (LAN IP in development, HTTPS domain in production) |
+| --- | --- |
+| `EXPO_PUBLIC_API_URL` | Base URL of the API: your local network IP in development, your HTTPS domain in production |
+
+</details>
 
 ---
 
 ## Scripts
 
-| `server/` | |
-|---|---|
+| Server (`server/`) | Description |
+| --- | --- |
 | `npm run dev` | Start the API with auto-reload |
 | `npm start` | Start the API |
 | `npm test` | Run the test suite (no database or network needed) |
-| `npm run typecheck` | TypeScript check (source + tests) |
-| `npm run db:migrate` | Create a new migration after editing `schema.prisma` (development) |
-| `npm run db:deploy` | Apply migrations (production / Neon) |
+| `npm run typecheck` | Type-check source and tests |
+| `npm run db:migrate` | Create a migration after editing `schema.prisma` |
+| `npm run db:deploy` | Apply migrations |
 | `npm run db:seed` | Seed categories and the admin account |
 | `npm run db:studio` | Browse the database in Prisma Studio |
 
-| `mobile/` | |
-|---|---|
+| Mobile (`mobile/`) | Description |
+| --- | --- |
 | `npm start` | Start the Expo dev server |
 | `npm run android` / `ios` / `web` | Start and open a specific platform |
-| `npm run typecheck` | TypeScript check (including typed routes) |
-| `npm run lint` | ESLint (Expo config) |
+| `npm run typecheck` | Type-check the app, including typed routes |
+| `npm run lint` | Run ESLint |
 
 ---
 
@@ -380,18 +396,17 @@ cd server
 npm test
 ```
 
-The suite boots the real API against an **in-process Postgres** ([PGlite](https://pglite.dev)) with the real migration applied, and replaces SSLCommerz with an HTTP-level mock. It needs no Docker, no Neon account and no network, and takes about 30 seconds.
+The suite runs the real API against an in-process Postgres with the real migration applied, and mocks SSLCommerz at the HTTP level. It needs no Docker, no database account and no network, and finishes in about 30 seconds.
 
 It covers:
-- sign-up, onboarding validation and admin approval;
-- the ৳50 subscription, including early renewal;
-- job posting, applying, hiring, contact reveal, completion and reviews;
-- direct offers → decline → free credit → re-offer → accept;
-- the full SSLCommerz callback path, forged callbacks, duplicate IPNs and reconciliation of payments that never called back;
-- admin stats, job moderation, media privacy, session cache eviction and account deletion;
-- rate limiting and the regex validators.
+- onboarding and admin approval;
+- subscriptions, including early renewal;
+- job posts, applications, hires, contact unlocking, completion and reviews;
+- direct offers and hire credits;
+- the full payment callback flow, forged callbacks, duplicate IPNs and reconciliation;
+- media privacy, session handling, account deletion and rate limiting.
 
-Mobile checks:
+For the mobile app:
 
 ```bash
 cd mobile
@@ -402,43 +417,48 @@ npm run typecheck && npm run lint && npx expo-doctor
 
 ## API reference
 
-Base URL: `/api`. Errors always look like `{ "error": { "code", "message", "details" } }`.
+All routes are under `/api`. Errors share one shape: `{ "error": { "code", "message", "details" } }`. Lists use cursor pagination: `?cursor=<id>&limit=20` returns `{ items, nextCursor }`.
+
+<details>
+<summary><strong>Show all endpoints</strong></summary>
+
+<br />
 
 | Area | Endpoints |
-|---|---|
-| Public | `GET /health` · `GET /meta` (categories, districts, pricing, feature flags) · `GET /media/:id` |
-| Auth | `/auth/*`: Better Auth (`sign-up/email`, `sign-in/email`, `sign-in/social`, `get-session`, `sign-out`…) |
+| --- | --- |
+| Public | `GET /health` · `GET /meta` · `GET /media/:id` |
+| Auth | `/auth/*`, handled by Better Auth (`sign-up/email`, `sign-in/email`, `sign-in/social`, `get-session`, `sign-out`) |
 | Account | `GET /me` · `PUT /me/worker` · `PUT /me/employer` · `PATCH /me/availability` · `DELETE /me` · `POST /media` |
 | Jobs | `GET /jobs` · `GET /jobs/mine` · `POST /jobs` · `GET /jobs/:id` · `POST /jobs/:id/close` · `POST /jobs/:id/reopen` · `DELETE /jobs/:id` · `POST /jobs/:id/apply` · `GET /jobs/:id/applications` |
-| Applications | `GET /applications/mine` · `POST /applications/:id/{withdraw, shortlist, reject, hire}` |
-| Workers | `GET /workers` (category, district, search, rating, sort) · `GET /workers/:id` |
-| Hires | `GET /hires` · `POST /hires` (direct offer) · `GET /hires/:id` · `POST /hires/:id/{accept, decline, complete, cancel, review}` |
-| Payments | `POST /payments/init` · `GET /payments` · `GET /payments/:tranId` · `/payments/sslcommerz/{success, fail, cancel, ipn}` |
+| Applications | `GET /applications/mine` · `POST /applications/:id/withdraw` · `POST /applications/:id/shortlist` · `POST /applications/:id/reject` · `POST /applications/:id/hire` |
+| Workers | `GET /workers` · `GET /workers/:id` |
+| Hires | `GET /hires` · `POST /hires` · `GET /hires/:id` · `POST /hires/:id/accept` · `POST /hires/:id/decline` · `POST /hires/:id/complete` · `POST /hires/:id/cancel` · `POST /hires/:id/review` |
+| Payments | `POST /payments/init` · `GET /payments` · `GET /payments/:tranId` · `POST /payments/sslcommerz/{success,fail,cancel,ipn}` |
 | Notifications | `GET /notifications` · `GET /notifications/unread-count` · `POST /notifications/read` |
-| Admin | `GET /admin/stats` · `GET /admin/{workers,employers}` · `GET /admin/{workers,employers}/:id` · `POST /admin/{workers,employers}/:id/decision` · `GET /admin/users` · `GET /admin/payments` · `GET /admin/jobs` · `POST /admin/jobs/:id/remove` · `GET/POST/PATCH /admin/categories` |
+| Admin | `GET /admin/stats` · `GET /admin/workers` · `GET /admin/employers` · `POST /admin/{workers,employers}/:id/decision` · `GET /admin/users` · `GET /admin/payments` · `GET /admin/jobs` · `POST /admin/jobs/:id/remove` · `GET/POST/PATCH /admin/categories` |
 
-Lists use cursor pagination: `?cursor=<id>&limit=20` → `{ items, nextCursor }`.
+</details>
 
 ---
 
 ## Security
 
 - **Rate limits:**
-  - 300 requests/min per IP on the API and 40/min on auth routes;
-  - Better Auth's own limits: sign-in 8/min, sign-up 5 per 10 min;
+  - 300 requests per minute per IP on the API, and 40 on sign-in routes;
+  - stricter limits on sign-in and sign-up;
   - per-user limits on payments, applications, job posts, offers and uploads.
-- **Validation:** every endpoint validates input with Zod. A district must belong to its division, and uploads are checked by magic bytes (JPEG/PNG/WebP, ≤ 1.5 MB).
-- **Privacy:** phone numbers, NID numbers and addresses are never included in public data. NID photos are visible only to their owner and admins.
-- **Payments:** amounts, currency and transaction IDs are verified with SSLCommerz before anything is granted. Redirects only go back into the app, and settlement is idempotent.
-- **Headers & limits:** secure headers, a CORS allow-list, and a 256 KB JSON body limit.
+- **Validation:** every request is validated with Zod. Uploads are checked by their file signature (JPEG, PNG or WebP, up to 1.5 MB).
+- **Privacy:** phone numbers, NID numbers and addresses never appear in public data. NID photos are visible only to their owner and admins.
+- **Payments:** amount, currency and transaction are verified with SSLCommerz before anything is granted. Redirects only go back into the app, and settlement is idempotent.
+- **Hardening:** secure headers, a CORS allow-list and request size limits.
 
 ---
 
 ## Deployment
 
-### API (any Node host, no Docker)
+### API
 
-Render, Railway, Fly.io or a VPS with `pm2` all work:
+Any Node.js host works (Render, Railway, Fly.io, or a VPS with `pm2`). No Docker needed.
 
 ```bash
 npm ci
@@ -446,69 +466,74 @@ npx prisma migrate deploy
 npm start
 ```
 
-Set `NODE_ENV=production`, `TRUST_PROXY=true` (behind a proxy), `BETTER_AUTH_URL=https://api.yourdomain.com`, and the rest of `.env`.
+In production, set:
+- `NODE_ENV=production`;
+- `TRUST_PROXY=true` when running behind a proxy;
+- `BETTER_AUTH_URL` to your HTTPS API domain;
+- the rest of the variables from `.env`.
 
-> The rate limiter and session cache are in memory, which is right for one instance. If you scale out, move them to Redis or Postgres.
+The rate limiter and session cache live in memory, which suits a single instance. Move them to Redis or Postgres before scaling out.
 
 ### Mobile
 
 ```bash
 cd mobile
 npx eas-cli@latest build:configure
-npx eas-cli@latest build -p android     # or -p ios
+npx eas-cli@latest build -p android
 ```
 
-Set `EXPO_PUBLIC_API_URL` to your production API in the `env` block of your `eas.json` build profile. Update the bundle identifiers in `app.json` (`com.youremployee.app`) if needed.
+Set `EXPO_PUBLIC_API_URL` in the `env` block of your `eas.json` build profile, and update the bundle identifiers in `app.json` if needed.
 
 ### Go-live checklist
 
-- [ ] `SSLCOMMERZ_IS_LIVE=true` with live store credentials, and the IPN URL registered
-- [ ] Google OAuth redirect URI set to the production domain
+- [ ] Live SSLCommerz credentials with `SSLCOMMERZ_IS_LIVE=true`, and the IPN URL registered
+- [ ] Google OAuth redirect URI pointing at the production domain
 - [ ] A strong `BETTER_AUTH_SECRET` and admin password
-- [ ] Custom app icon and splash artwork in `mobile/assets/images`
+- [ ] Your own app icon and splash artwork in `mobile/assets/images`
 
 ---
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| The app shows **"You're offline"** on a phone | `EXPO_PUBLIC_API_URL` must use your PC's LAN IP, both devices must be on the same Wi-Fi, and your firewall must allow port 4000 |
-| The server exits with **"Invalid environment variables"** | Fill in the variables it lists in `server/.env` |
-| `prisma migrate` can't reach Neon | Use the **direct** (non-pooler) URL in `DIRECT_URL` |
-| Google shows **`redirect_uri_mismatch`** | The redirect URI must be exactly `<BETTER_AUTH_URL>/api/auth/callback/google` over HTTPS (use a tunnel locally) |
-| Checkout is disabled or says **“Payments are not configured”** | Set `SSLCOMMERZ_STORE_ID` and `SSLCOMMERZ_STORE_PASSWORD`, then restart the API |
-| **429 Too many requests** while testing | Rate limits are working as designed; wait a minute or restart the API (limits are in memory) |
-| npm asks to approve install scripts (npm 11+) | `npm install-scripts approve <package>` |
+| Problem | Solution |
+| --- | --- |
+| The app says **"You're offline"** on a phone | Use your computer's local network IP in `EXPO_PUBLIC_API_URL`, keep both devices on the same Wi-Fi, and allow port 4000 through the firewall |
+| The server stops with **"Invalid environment variables"** | Fill in the variables it lists in `server/.env` |
+| Prisma migrations cannot reach Neon | Use the **direct** (non-pooler) connection string for `DIRECT_URL` |
+| Google shows **`redirect_uri_mismatch`** | Register exactly `<BETTER_AUTH_URL>/api/auth/callback/google` over HTTPS (use a tunnel locally) |
+| Checkout says **"Payments are not configured"** | Set `SSLCOMMERZ_STORE_ID` and `SSLCOMMERZ_STORE_PASSWORD`, then restart the API |
+| **429 Too many requests** during testing | Rate limits are working as intended; wait a minute or restart the API |
 
 ---
 
-## Project status & roadmap
+## Roadmap
 
-**Status:**
+- [ ] Push notifications
+- [ ] Password reset by email
+- [ ] Bengali language support across the app
+- [ ] Subscription expiry reminders
+- [ ] Employer ratings by workers and in-app chat
+- [ ] Refunds through SSLCommerz
+- [ ] Shared rate-limit and session store for multi-instance deployments
+- [ ] Mobile component tests
+
+**Current status:**
 - All features above are implemented.
-- Verified with TypeScript (including typed routes), ESLint, `expo-doctor`, the automated API tests, and a Playwright UI pass over the web build for every role.
-- **Not yet** tested on physical Android/iOS devices or with real SSLCommerz sandbox payments.
-
-**Roadmap:**
-- Push notifications (expo-notifications + EAS)
-- Password reset by email (Resend/SES via Better Auth's `sendResetPassword`)
-- Full Bangla UI (i18n); categories and divisions already have Bangla names
-- Subscription expiry reminders
-- Workers rating employers, in-app chat, refunds via SSLCommerz
-- Shared rate-limit/session store for multi-instance deployments
-- Mobile component tests (Jest + React Native Testing Library)
+- Verified with type-checking, linting, `expo-doctor`, the automated API test suite and browser-based UI testing of the web build.
+- Not yet tested on physical devices or with live SSLCommerz sandbox payments.
 
 ---
 
 ## Contributing
 
-1. Keep the structure: a server feature is `modules/<name>/{routes,schemas,service}.ts`, and a mobile feature is `features/<name>/`.
-2. Run the checks before opening a PR:
+1. Follow the structure: a server feature is `modules/<name>/`, and a mobile feature is `features/<name>/`.
+2. Run the checks before opening a pull request:
+
    ```bash
    cd server && npm run typecheck && npm test
    cd ../mobile && npm run typecheck && npm run lint
    ```
+
 3. After changing `server/prisma/schema.prisma`, create a migration with `npm run db:migrate -- --name <change>`.
 
 ---
@@ -516,5 +541,3 @@ Set `EXPO_PUBLIC_API_URL` to your production API in the `env` block of your `eas
 ## License
 
 No license has been chosen yet, so all rights are reserved. Add a `LICENSE` file before publishing or accepting outside contributions.
-#   Y o u r - E m p l o y e e  
- 
