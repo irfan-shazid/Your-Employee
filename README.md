@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/API-Hono%204-E36002?logo=hono&logoColor=white" alt="Hono 4" />
   <img src="https://img.shields.io/badge/ORM-Prisma%207-2D3748?logo=prisma&logoColor=white" alt="Prisma 7" />
   <img src="https://img.shields.io/badge/DB-Neon%20Postgres-00E599?logo=postgresql&logoColor=white" alt="Neon Postgres" />
-  <img src="https://img.shields.io/badge/Payments-SSLCommerz-0E8F63" alt="SSLCommerz" />
+  <img src="https://img.shields.io/badge/Payments-SSLCommerz%20%2B%20Stripe-0E8F63" alt="SSLCommerz and Stripe" />
 </p>
 
 <p align="center">
@@ -42,15 +42,15 @@ Daily work such as masonry, electrical repairs, loading, cooking or driving is s
 | **Employer** | Registers as an individual or a business, gets verified, posts jobs or hires workers directly |
 | **Admin** | Approves profiles, moderates jobs, manages categories and tracks revenue |
 
-The platform earns small fees, paid through **SSLCommerz** (bKash, Nagad, Rocket and cards):
+The platform earns small fees. People in Bangladesh pay through **SSLCommerz** (bKash, Nagad, Rocket and local cards); anyone else can pay by international card through **Stripe**:
 
-| Fee | Paid by | Default |
-| --- | --- | --- |
-| Worker plan (30 days) | Worker | **BDT 50** |
-| Job post | Employer | **BDT 10** |
-| Hire (applicant or direct offer) | Employer | **BDT 10** |
+| Fee | Paid by | SSLCommerz | Stripe |
+| --- | --- | --- | --- |
+| Worker plan (30 days) | Worker | **BDT 50** | **USD 1.00** |
+| Job post | Employer | **BDT 10** | **USD 0.50** |
+| Hire (applicant or direct offer) | Employer | **BDT 10** | **USD 0.50** |
 
-All prices are configurable in `server/.env`.
+All prices and the Stripe currency are configurable in `server/.env`. Stripe has its own prices because its minimum charge (about USD 0.50) is higher than the BDT fees.
 
 ---
 
@@ -71,13 +71,18 @@ All prices are configurable in `server/.env`.
 - In-app notifications with unread badges
 
 **Payments**
-- SSLCommerz checkout in an in-app browser, with a deep link back into the app
-- Every payment is re-validated on the server, and duplicate callbacks are ignored
+- Two gateways: SSLCommerz for local wallets and cards, Stripe Checkout for international cards. When both are enabled, the app asks which one to use and shows the price in each currency
+- Hosted checkout in an in-app browser, with a deep link back into the app (no native SDK, so it also works in Expo Go and on the web)
+- Every payment is verified server-to-server: the SSLCommerz validation API, and signed Stripe webhooks plus a fresh read of the Checkout Session
+- Settlement is idempotent across return URLs, IPN, webhooks and retries, so a plan, job or hire is granted exactly once
+- Delayed Stripe payment methods show as processing until they clear or fail
+- Abandoned Stripe checkouts are expired when the customer cancels or tries again, so nothing can be paid twice
 - Payments that never called back are reconciled automatically
+- Amounts are stored in minor units with their currency, and revenue is reported per currency
 
 **Admin dashboard (inside the same app)**
-- Monthly and all-time revenue, a 7-day revenue chart, approval queues with NID photos
-- Users, payments, job moderation, and categories with English and Bengali names
+- Monthly and all-time revenue per currency, a 7-day revenue chart, approval queues with NID photos
+- Users, payments (filter by status, type and gateway), job moderation, and categories with English and Bengali names
 
 **Experience & performance**
 - Light, dark and automatic themes; skeleton loaders, pull-to-refresh, infinite scroll, haptics and smooth animations
@@ -146,8 +151,8 @@ All prices are configurable in `server/.env`.
 | API | [Hono 4](https://hono.dev) on Node.js · Zod validation · rate limiting |
 | Auth | [Better Auth 1.7](https://www.better-auth.com) + `@better-auth/expo` |
 | Database | [Neon](https://neon.tech) Postgres · [Prisma ORM 7](https://www.prisma.io) with `@prisma/adapter-pg` |
-| Payments | [SSLCommerz](https://developer.sslcommerz.com) (sandbox and live) |
-| Tests | Node test runner · [PGlite](https://pglite.dev) in-process Postgres · mocked SSLCommerz |
+| Payments | [SSLCommerz](https://developer.sslcommerz.com) (sandbox and live) · [Stripe Checkout](https://docs.stripe.com/payments/checkout) (`stripe` 22) |
+| Tests | Node test runner · [PGlite](https://pglite.dev) in-process Postgres · mocked SSLCommerz and Stripe |
 
 No Docker required.
 
@@ -161,31 +166,33 @@ flowchart TB
   API["Hono API<br/>Better Auth · Zod · rate limits"]
   DB[("Neon Postgres")]
   SSL["SSLCommerz"]
+  Stripe["Stripe Checkout"]
   Google["Google OAuth"]
 
   App -- "HTTPS + session cookie" --> API
   API -- "Prisma 7" --> DB
-  API <-- "payments & callbacks" --> SSL
+  API <-- "payments & IPN" --> SSL
+  API <-- "payments & webhooks" --> Stripe
   App -. "sign-in" .-> Google
   Google -. "callback" .-> API
 ```
 
-The app never trusts a payment redirect on its own:
+The app never trusts a payment redirect on its own. Both gateways follow the same flow:
 
 ```mermaid
 sequenceDiagram
   participant A as App
   participant S as API
-  participant G as SSLCommerz
-  A->>S: POST /api/payments/init
-  S->>G: Create payment session
+  participant G as SSLCommerz or Stripe
+  A->>S: POST /api/payments/init (provider, purpose)
+  S->>G: Create checkout session
   G-->>A: Hosted checkout (in-app browser)
-  G->>S: POST success URL with val_id
-  S->>G: Validate amount, currency and transaction
+  G->>S: Return URL (val_id or session_id)
+  S->>G: Verify amount, currency and transaction
   S->>S: Settle exactly once (plan, job or hire)
   S-->>A: Deep link back to the app
   A->>S: GET /api/payments/:tranId
-  G-->>S: IPN (server-to-server backup)
+  G-->>S: IPN or signed webhook (server-to-server backup)
 ```
 
 ---
@@ -202,11 +209,11 @@ sequenceDiagram
 │       ├── index.ts         starts the HTTP server
 │       ├── config/          validated environment and pricing
 │       ├── db/              Prisma client and seed functions
-│       ├── lib/             auth, session cache, errors, validation, pagination, SSLCommerz client
+│       ├── lib/             auth, session cache, errors, validation, pagination, SSLCommerz and Stripe clients
 │       ├── middleware/      session, role and approval guards
 │       ├── shared/          Zod schemas, serializers, locations, categories
 │       └── modules/         account, jobs, applications, hires, workers,
-│                            payments, notifications, admin, media, meta
+│                            payments (one adapter per gateway), notifications, admin, media, meta
 ├── mobile/                  Expo app
 │   └── src/
 │       ├── app/             screens (Expo Router)
@@ -234,6 +241,7 @@ sequenceDiagram
 - An [SSLCommerz sandbox store](https://developer.sslcommerz.com/registration/)
 - Expo Go on your phone, or an Android emulator / iOS simulator
 - *Optional:* a Google Cloud OAuth client for Google sign-in
+- *Optional:* a [Stripe](https://dashboard.stripe.com/register) account in test mode and the [Stripe CLI](https://docs.stripe.com/stripe-cli) for card payments
 
 ### 1. Install
 
@@ -323,6 +331,35 @@ Scan the QR code with Expo Go, then sign in with `ADMIN_EMAIL` and `ADMIN_PASSWO
 - **IPN:** server-to-server confirmation needs a public URL. The app also confirms payments itself, so IPN is a safety net.
 - **Live:** set `SSLCOMMERZ_IS_LIVE=true` and register `<your-domain>/api/payments/sslcommerz/ipn` as the IPN URL in the merchant panel.
 
+### Stripe *(optional)*
+
+Stripe adds international card payments next to SSLCommerz. It uses hosted Stripe Checkout, so no native SDK or app rebuild is needed.
+
+1. In the Stripe Dashboard (test mode), open **Developers → API keys** and put the secret key in `server/.env`:
+
+   ```dotenv
+   STRIPE_SECRET_KEY=sk_test_...
+   ```
+
+2. Forward webhooks to your local API with the Stripe CLI, and copy the `whsec_...` secret it prints:
+
+   ```bash
+   stripe listen --forward-to localhost:4000/api/payments/stripe/webhook
+   ```
+
+   ```dotenv
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+3. Restart the API. The app now asks **"How would you like to pay?"** and lists both gateways.
+4. Pay with the test card `4242 4242 4242 4242`, any future expiry date and any CVC.
+
+Notes:
+- The return page confirms the payment straight away, so checkout works even before the webhook is set up. The webhook covers customers who close the browser early, and delayed payment methods.
+- Stripe prices are set with `STRIPE_CURRENCY` and the `STRIPE_*_FEE` variables (defaults: USD 1.00, 0.50 and 0.50). The API warns at startup if a price is below Stripe's minimum charge.
+- **Live:** use an `sk_live_` key, and add the endpoint `<your-domain>/api/payments/stripe/webhook` under **Developers → Webhooks** with the events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`. Use that endpoint's signing secret as `STRIPE_WEBHOOK_SECRET`.
+- **Upgrading an existing database:** run `npm run db:deploy`. The `payment_providers` migration adds the gateway columns and converts stored amounts to minor units (BDT 50 becomes 5000 poisha).
+
 ---
 
 ## Configuration
@@ -346,7 +383,11 @@ Scan the QR code with Expo Go, then sign in with `ADMIN_EMAIL` and `ADMIN_PASSWO
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | | Enable Google sign-in |
 | `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD` | | Enable payments |
 | `SSLCOMMERZ_IS_LIVE` | | `false` for sandbox, `true` for live |
-| `WORKER_MONTHLY_FEE`, `JOB_POST_FEE`, `HIRE_FEE` | | Prices in BDT (defaults `50`, `10`, `10`) |
+| `STRIPE_SECRET_KEY` | | Enables Stripe (`sk_test_...` or `sk_live_...`) |
+| `STRIPE_WEBHOOK_SECRET` | | Signing secret of the webhook endpoint (`whsec_...`) |
+| `STRIPE_CURRENCY` | | Currency Stripe charges in (default `usd`) |
+| `STRIPE_WORKER_MONTHLY_FEE`, `STRIPE_JOB_POST_FEE`, `STRIPE_HIRE_FEE` | | Stripe prices in `STRIPE_CURRENCY`, decimals allowed (defaults `1.00`, `0.50`, `0.50`) |
+| `WORKER_MONTHLY_FEE`, `JOB_POST_FEE`, `HIRE_FEE` | | SSLCommerz prices in BDT (defaults `50`, `10`, `10`) |
 | `SUBSCRIPTION_DAYS` | | Length of the worker plan (default `30`) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | | First admin account, created by `npm run db:seed` |
 
@@ -396,14 +437,16 @@ cd server
 npm test
 ```
 
-The suite runs the real API against an in-process Postgres with the real migration applied, and mocks SSLCommerz at the HTTP level. It needs no Docker, no database account and no network, and finishes in about 30 seconds.
+The suite runs the real API against an in-process Postgres with the real migrations applied, and mocks SSLCommerz and Stripe at the HTTP level. It needs no Docker, no database account and no network, and finishes in about 30 seconds.
 
 It covers:
 - onboarding and admin approval;
 - subscriptions, including early renewal;
 - job posts, applications, hires, contact unlocking, completion and reviews;
 - direct offers and hire credits;
-- the full payment callback flow, forged callbacks, duplicate IPNs and reconciliation;
+- the full SSLCommerz callback flow, forged callbacks, duplicate IPNs and reconciliation;
+- Stripe Checkout: return URL, signed and forged webhooks, duplicate deliveries, delayed payment methods, cancellation, superseded checkouts and reconciliation;
+- revenue reported per currency;
 - media privacy, session handling, account deletion and rate limiting.
 
 For the mobile app:
@@ -433,7 +476,7 @@ All routes are under `/api`. Errors share one shape: `{ "error": { "code", "mess
 | Applications | `GET /applications/mine` · `POST /applications/:id/withdraw` · `POST /applications/:id/shortlist` · `POST /applications/:id/reject` · `POST /applications/:id/hire` |
 | Workers | `GET /workers` · `GET /workers/:id` |
 | Hires | `GET /hires` · `POST /hires` · `GET /hires/:id` · `POST /hires/:id/accept` · `POST /hires/:id/decline` · `POST /hires/:id/complete` · `POST /hires/:id/cancel` · `POST /hires/:id/review` |
-| Payments | `POST /payments/init` · `GET /payments` · `GET /payments/:tranId` · `POST /payments/sslcommerz/{success,fail,cancel,ipn}` |
+| Payments | `POST /payments/init` · `GET /payments` · `GET /payments/:tranId` · `POST /payments/sslcommerz/{success,fail,cancel,ipn}` · `GET /payments/stripe/return` · `GET /payments/stripe/cancel` · `POST /payments/stripe/webhook` |
 | Notifications | `GET /notifications` · `GET /notifications/unread-count` · `POST /notifications/read` |
 | Admin | `GET /admin/stats` · `GET /admin/workers` · `GET /admin/employers` · `POST /admin/{workers,employers}/:id/decision` · `GET /admin/users` · `GET /admin/payments` · `GET /admin/jobs` · `POST /admin/jobs/:id/remove` · `GET/POST/PATCH /admin/categories` |
 
@@ -449,7 +492,7 @@ All routes are under `/api`. Errors share one shape: `{ "error": { "code", "mess
   - per-user limits on payments, applications, job posts, offers and uploads.
 - **Validation:** every request is validated with Zod. Uploads are checked by their file signature (JPEG, PNG or WebP, up to 1.5 MB).
 - **Privacy:** phone numbers, NID numbers and addresses never appear in public data. NID photos are visible only to their owner and admins.
-- **Payments:** amount, currency and transaction are verified with SSLCommerz before anything is granted. Redirects only go back into the app, and settlement is idempotent.
+- **Payments:** amount, currency and transaction are verified with the gateway before anything is granted. Stripe webhooks must carry a valid signature, and the session is re-read from Stripe instead of trusting the payload. Redirects only go back into the app, and settlement is idempotent.
 - **Hardening:** secure headers, a CORS allow-list and request size limits.
 
 ---
@@ -487,6 +530,8 @@ Set `EXPO_PUBLIC_API_URL` in the `env` block of your `eas.json` build profile, a
 ### Go-live checklist
 
 - [ ] Live SSLCommerz credentials with `SSLCOMMERZ_IS_LIVE=true`, and the IPN URL registered
+- [ ] If Stripe is enabled: a live key, the production webhook endpoint and its signing secret
+- [ ] `npm run db:deploy` run against the production database
 - [ ] Google OAuth redirect URI pointing at the production domain
 - [ ] A strong `BETTER_AUTH_SECRET` and admin password
 - [ ] Your own app icon and splash artwork in `mobile/assets/images`
@@ -501,7 +546,10 @@ Set `EXPO_PUBLIC_API_URL` in the `env` block of your `eas.json` build profile, a
 | The server stops with **"Invalid environment variables"** | Fill in the variables it lists in `server/.env` |
 | Prisma migrations cannot reach Neon | Use the **direct** (non-pooler) connection string for `DIRECT_URL` |
 | Google shows **`redirect_uri_mismatch`** | Register exactly `<BETTER_AUTH_URL>/api/auth/callback/google` over HTTPS (use a tunnel locally) |
-| Checkout says **"Payments are not configured"** | Set `SSLCOMMERZ_STORE_ID` and `SSLCOMMERZ_STORE_PASSWORD`, then restart the API |
+| Checkout says **"Payments are not configured"** | Set `SSLCOMMERZ_STORE_ID` and `SSLCOMMERZ_STORE_PASSWORD` (or `STRIPE_SECRET_KEY`), then restart the API |
+| The app doesn't offer **Stripe** | Set `STRIPE_SECRET_KEY` and restart the API. The app picks up the change within a few minutes, or on the next launch |
+| A Stripe payment stays **processing** | The webhook isn't reaching the API. Run `stripe listen` locally, or check the endpoint URL and events in the Dashboard |
+| Stripe webhooks fail with **400** | `STRIPE_WEBHOOK_SECRET` doesn't match. The Stripe CLI and each Dashboard endpoint have their own secret |
 | **429 Too many requests** during testing | Rate limits are working as intended; wait a minute or restart the API |
 
 ---
@@ -513,14 +561,14 @@ Set `EXPO_PUBLIC_API_URL` in the `env` block of your `eas.json` build profile, a
 - [ ] Bengali language support across the app
 - [ ] Subscription expiry reminders
 - [ ] Employer ratings by workers and in-app chat
-- [ ] Refunds through SSLCommerz
+- [ ] Refunds through SSLCommerz and Stripe
 - [ ] Shared rate-limit and session store for multi-instance deployments
 - [ ] Mobile component tests
 
 **Current status:**
 - All features above are implemented.
 - Verified with type-checking, linting, `expo-doctor`, the automated API test suite and browser-based UI testing of the web build.
-- Not yet tested on physical devices or with live SSLCommerz sandbox payments.
+- Not yet tested on physical devices, or with real SSLCommerz sandbox and Stripe test-mode payments. Both gateways are covered by the mocked API tests and a browser run of the web build.
 
 ---
 

@@ -66,6 +66,7 @@ export const jobStatus = z.enum(["PENDING_PAYMENT", "OPEN", "FILLED", "CLOSED", 
 export const hireStatus = z.enum(["PENDING_PAYMENT", "OFFERED", "ACTIVE", "COMPLETED", "DECLINED", "CANCELLED"]);
 export const paymentPurpose = z.enum(["WORKER_SUBSCRIPTION", "JOB_POST", "HIRE"]);
 export const paymentStatus = z.enum(["PENDING", "SUCCESS", "FAILED", "CANCELLED"]);
+export const paymentProvider = z.enum(["SSLCOMMERZ", "STRIPE"]);
 
 export const wageAmount = z.coerce.number().int().min(50, "Minimum wage is ৳50").max(500000);
 

@@ -1,6 +1,6 @@
 /**
- * End-to-end tests of the whole marketplace against a real Postgres (PGlite) and a mocked
- * SSLCommerz. Steps run in order and build on each other, like a real day on the platform.
+ * End-to-end tests of the whole marketplace against a real Postgres (PGlite) and mocked
+ * SSLCommerz / Stripe APIs. Steps run in order and build on each other, like a real day on the platform.
  *
  *   npm test
  */
@@ -9,6 +9,7 @@ import { after, before, describe, it } from "node:test";
 import { TestClient } from "./helpers/client.js";
 import { ADMIN, startTestEnvironment } from "./helpers/setup.js";
 import { markPaid } from "./helpers/sslcommerz-mock.js";
+import { completeStripeCheckout, settleDelayedStripePayment, signedStripeEvent, stripeSessionFor } from "./helpers/stripe-mock.js";
 
 let env: Awaited<ReturnType<typeof startTestEnvironment>>;
 let anon: TestClient;
@@ -20,7 +21,10 @@ const REDIRECT = "youremployee://payment-result";
 const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 const ids: Record<string, string> = {};
 
-/** Start a payment, "pay" on the mocked gateway, and follow the browser back to the success URL. */
+/**
+ * Start a payment (no provider given, so the server picks SSLCommerz), "pay" on the mocked
+ * gateway, and follow the browser back to the success URL.
+ */
 async function pay(client: TestClient, purpose: string, referenceId?: string, redirectUrl = REDIRECT) {
   const init = await client.post("/api/payments/init", { purpose, referenceId, redirectUrl });
   assert.equal(init.status, 200, JSON.stringify(init.body));
@@ -56,6 +60,16 @@ describe("public endpoints", () => {
     assert.equal(body.divisions.reduce((n: number, d: { districts: string[] }) => n + d.districts.length, 0), 64);
     assert.deepEqual([body.pricing.workerMonthly, body.pricing.jobPost, body.pricing.hire], [50, 10, 10]);
     ids.category = body.categories.find((c: { slug: string }) => c.slug === "construction").id;
+  });
+
+  it("lists both payment methods with prices in minor units", async () => {
+    const { body } = await anon.get("/api/meta");
+    const [ssl, stripe] = body.paymentMethods;
+    assert.equal(body.features.payments, true);
+    assert.deepEqual([ssl.id, ssl.currency, ssl.enabled], ["SSLCOMMERZ", "BDT", true]);
+    assert.deepEqual(ssl.prices, { WORKER_SUBSCRIPTION: 5000, JOB_POST: 1000, HIRE: 1000 });
+    assert.deepEqual([stripe.id, stripe.currency, stripe.enabled], ["STRIPE", "USD", true]);
+    assert.deepEqual(stripe.prices, { WORKER_SUBSCRIPTION: 100, JOB_POST: 50, HIRE: 50 });
   });
 
   it("rejects /me without a session", async () => {
@@ -165,7 +179,7 @@ describe("worker subscription (৳50)", () => {
 
   it("activates the plan exactly once even when IPN repeats the callback", async () => {
     const { tranId, valId, amount } = await pay(worker, "WORKER_SUBSCRIPTION");
-    assert.equal(amount, 50);
+    assert.equal(amount, 5000, "amounts are in poisha");
     const before = (await worker.get("/api/me")).body.worker.subscriptionExpiresAt;
 
     const ipn = await anon.request("POST", "/api/payments/sslcommerz/ipn", new URLSearchParams({ tran_id: tranId, val_id: valId }));
@@ -208,7 +222,7 @@ describe("job post → apply → hire → complete → review", () => {
     ids.job = res.body.job.id;
     assert.ok(!(await worker.get("/api/jobs")).body.items.some((j: { id: string }) => j.id === ids.job));
 
-    assert.equal((await pay(employer, "JOB_POST", ids.job)).amount, 10);
+    assert.equal((await pay(employer, "JOB_POST", ids.job)).amount, 1000);
     const feed = await worker.get(`/api/jobs?categoryId=${ids.category}&district=Gazipur`);
     const job = feed.body.items.find((j: { id: string }) => j.id === ids.job);
     assert.ok(job);
@@ -321,14 +335,198 @@ describe("payment reconciliation", () => {
   });
 });
 
+describe("Stripe checkout (international cards)", () => {
+  // A second employer who pays by card (keeps the per-user payment rate limit out of the way).
+  let payer: TestClient;
+
+  const stripeInit = (client: TestClient, purpose: string, referenceId?: string) =>
+    client.post("/api/payments/init", { provider: "STRIPE", purpose, referenceId, redirectUrl: REDIRECT });
+  const paymentOf = async (client: TestClient, tranId: string) => (await client.get(`/api/payments/${tranId}`)).body.payment;
+  const jobStatus = async (id: string) => (await payer.get(`/api/jobs/${id}`)).body.job.status;
+  const subscriptionExpiry = async () => (await worker.get("/api/me")).body.worker.subscriptionExpiresAt as string;
+
+  /** POST a webhook delivery exactly as Stripe sends it: raw JSON body + signature header. */
+  function deliver(type: string, tranId: string, secret?: string) {
+    const { payload, signature } = signedStripeEvent(type, tranId, secret);
+    return env.app.request("http://localhost:4000/api/payments/stripe/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Stripe-Signature": signature, "X-Forwarded-For": "10.9.9.9" },
+      body: payload,
+    });
+  }
+
+  async function newJob(title: string) {
+    const res = await payer.post("/api/jobs", {
+      title,
+      categoryId: ids.category,
+      description: "Materials are provided. Please bring your own tools.",
+      wageAmount: 1000,
+      wageType: "DAILY",
+      workersNeeded: 1,
+      startDate: day(3),
+      durationDays: 2,
+      division: "Dhaka",
+      district: "Gazipur",
+      area: "Tongi",
+    });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    return res.body.job.id as string;
+  }
+
+  it("onboards an employer who pays by card", async () => {
+    payer = new TestClient(env.app);
+    await payer.signUp("Nadia Islam", "nadia@test.dev");
+    const profile = await payer.put("/api/me/employer", {
+      type: "INDIVIDUAL",
+      fullName: "Nadia Islam",
+      phone: "01912345678",
+      nidNumber: "9876543210",
+      division: "Dhaka",
+      district: "Gazipur",
+      area: "Tongi",
+    });
+    assert.equal(profile.status, 200, JSON.stringify(profile.body));
+    assert.equal((await admin.post(`/api/admin/employers/${profile.body.employer.id}/decision`, { action: "approve" })).status, 200);
+  });
+
+  it("validates the chosen provider", async () => {
+    const res = await payer.post("/api/payments/init", { provider: "PAYPAL", purpose: "WORKER_SUBSCRIPTION", redirectUrl: REDIRECT });
+    assert.equal(res.status, 400);
+  });
+
+  it("publishes a job paid by card once the browser returns from Checkout", async () => {
+    const jobId = await newJob("Paint a two-room flat");
+    const init = await stripeInit(payer, "JOB_POST", jobId);
+    assert.equal(init.status, 200, JSON.stringify(init.body));
+    assert.equal(init.body.provider, "STRIPE");
+    assert.deepEqual([init.body.amount, init.body.currency], [50, "USD"], "Stripe prices are separate (in cents)");
+    assert.match(init.body.gatewayUrl, /^https:\/\/checkout\.stripe\.com\//);
+
+    const session = completeStripeCheckout(init.body.tranId);
+    assert.match(session.successUrl, /\/api\/payments\/stripe\/return\?session_id=\{CHECKOUT_SESSION_ID\}$/);
+    const page = await anon.get(`/api/payments/stripe/return?session_id=${session.id}`);
+    assert.match(page.body, /Payment successful/);
+    assert.ok(page.body.includes(`${REDIRECT}?status=success`), "return page deep-links back into the app");
+
+    assert.equal(await jobStatus(jobId), "OPEN");
+    const payment = await paymentOf(payer, init.body.tranId);
+    assert.deepEqual([payment.status, payment.provider, payment.method, payment.currency], ["SUCCESS", "STRIPE", "visa", "USD"]);
+  });
+
+  it("settles from the signed webhook when the customer never returns — exactly once", async () => {
+    const before = new Date(await subscriptionExpiry()).getTime();
+    const init = await stripeInit(worker, "WORKER_SUBSCRIPTION");
+    assert.deepEqual([init.body.amount, init.body.currency], [100, "USD"]);
+    ids.stripeSubscription = init.body.tranId;
+    completeStripeCheckout(init.body.tranId);
+
+    const res = await deliver("checkout.session.completed", init.body.tranId);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { received: true, result: "processed" });
+    assert.equal((await paymentOf(worker, init.body.tranId)).status, "SUCCESS");
+    const after = await subscriptionExpiry();
+    assert.equal(Math.round((new Date(after).getTime() - before) / 86_400_000), 30);
+
+    // Stripe retries deliveries, and the browser may still come back later: no extra days.
+    assert.equal((await deliver("checkout.session.completed", init.body.tranId)).status, 200);
+    await anon.get(`/api/payments/stripe/return?session_id=${stripeSessionFor(init.body.tranId).id}`);
+    assert.equal(await subscriptionExpiry(), after);
+  });
+
+  it("rejects forged and unsigned webhooks", async () => {
+    assert.equal((await deliver("checkout.session.completed", ids.stripeSubscription!, "whsec_attacker")).status, 400);
+    const unsigned = await env.app.request("http://localhost:4000/api/payments/stripe/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "checkout.session.completed" }),
+    });
+    assert.equal(unsigned.status, 400);
+  });
+
+  it("waits for a delayed payment method, then publishes when it clears", async () => {
+    const jobId = await newJob("Deep clean an office floor");
+    const init = await stripeInit(payer, "JOB_POST", jobId);
+    const session = completeStripeCheckout(init.body.tranId, "processing");
+
+    const page = await anon.get(`/api/payments/stripe/return?session_id=${session.id}`);
+    assert.match(page.body, /Payment processing/);
+    assert.ok(page.body.includes("status=processing"));
+    assert.equal((await paymentOf(payer, init.body.tranId)).status, "PENDING");
+    assert.equal(await jobStatus(jobId), "PENDING_PAYMENT");
+
+    settleDelayedStripePayment(init.body.tranId, true);
+    assert.equal((await deliver("checkout.session.async_payment_succeeded", init.body.tranId)).status, 200);
+    assert.equal(await jobStatus(jobId), "OPEN");
+  });
+
+  it("records a declined delayed payment as failed", async () => {
+    const init = await stripeInit(worker, "WORKER_SUBSCRIPTION");
+    completeStripeCheckout(init.body.tranId, "processing");
+    settleDelayedStripePayment(init.body.tranId, false);
+    assert.equal((await deliver("checkout.session.async_payment_failed", init.body.tranId)).status, 200);
+
+    const payment = await paymentOf(worker, init.body.tranId);
+    assert.equal(payment.status, "FAILED");
+    assert.match(payment.failureReason, /declined/);
+  });
+
+  it("closes abandoned checkouts on retry and on cancel, so nothing can be paid twice", async () => {
+    const jobId = await newJob("Fix a leaking roof");
+    const first = await stripeInit(payer, "JOB_POST", jobId);
+    const second = await stripeInit(payer, "JOB_POST", jobId);
+    assert.equal(stripeSessionFor(first.body.tranId).status, "expired", "the first checkout can no longer be paid");
+    assert.equal((await paymentOf(payer, first.body.tranId)).status, "CANCELLED");
+
+    const page = await anon.get(`/api/payments/stripe/cancel?tran_id=${second.body.tranId}`);
+    assert.match(page.body, /Payment cancelled/);
+    assert.equal(stripeSessionFor(second.body.tranId).status, "expired");
+    assert.equal((await paymentOf(payer, second.body.tranId)).status, "CANCELLED");
+
+    // Switching to SSLCommerz afterwards works as usual.
+    await pay(payer, "JOB_POST", jobId);
+    assert.equal(await jobStatus(jobId), "OPEN");
+  });
+
+  it("settles a checkout that was paid unnoticed instead of opening a new one", async () => {
+    const jobId = await newJob("Move office furniture");
+    const first = await stripeInit(payer, "JOB_POST", jobId);
+    completeStripeCheckout(first.body.tranId); // paid, but the webhook and the browser are both late
+
+    const retry = await stripeInit(payer, "JOB_POST", jobId);
+    assert.equal(retry.status, 409);
+    assert.equal(retry.body.error.code, "ALREADY_PAID");
+    assert.equal((await paymentOf(payer, first.body.tranId)).status, "SUCCESS");
+    assert.equal(await jobStatus(jobId), "OPEN");
+  });
+
+  it("reconciles with Stripe when neither the browser nor the webhook arrived", async () => {
+    const init = await stripeInit(worker, "WORKER_SUBSCRIPTION");
+    completeStripeCheckout(init.body.tranId);
+    await env.prisma.payment.update({ where: { tranId: init.body.tranId }, data: { createdAt: new Date(Date.now() - 60_000) } });
+    assert.equal((await paymentOf(worker, init.body.tranId)).status, "SUCCESS");
+  });
+});
+
 describe("admin tools", () => {
-  it("reports revenue per Bangladesh day", async () => {
-    const stats = (await admin.get("/api/admin/stats")).body;
-    // 50 plan + 10 job + 10 hire + 10 offer + 50 renewal
-    assert.equal(stats.revenue.total, 130);
-    assert.equal(stats.revenue.last7Days.length, 7);
-    assert.equal(stats.revenue.last7Days.at(-1).amount, 130, "today is the last bucket");
-    assert.equal((await admin.get("/api/admin/payments?status=SUCCESS")).body.items.length, 5);
+  it("reports revenue per currency and per Bangladesh day", async () => {
+    const { revenue } = (await admin.get("/api/admin/stats")).body;
+    const [bdt, usd] = revenue.currencies;
+
+    // SSLCommerz, in poisha: 50 plan + 10 job + 10 hire + 10 offer + 50 renewal + 10 job
+    assert.equal(bdt.currency, "BDT");
+    assert.equal(bdt.total, 14000);
+    assert.equal(bdt.payments, 6);
+    assert.equal(bdt.last7Days.length, 7);
+    assert.equal(bdt.last7Days.at(-1).amount, 14000, "today is the last bucket");
+
+    // Stripe, in cents and never mixed with BDT: 0.50 + 1.00 + 0.50 + 0.50 + 1.00
+    assert.equal(usd.currency, "USD");
+    assert.equal(usd.total, 350);
+    assert.deepEqual(usd.byPurpose.JOB_POST, { amount: 150, count: 3 });
+    assert.equal(revenue.payments, 11);
+
+    assert.equal((await admin.get("/api/admin/payments?status=SUCCESS")).body.items.length, 11);
+    assert.equal((await admin.get("/api/admin/payments?status=SUCCESS&provider=STRIPE")).body.items.length, 5);
   });
 
   it("manages categories", async () => {

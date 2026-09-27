@@ -1,10 +1,14 @@
 import { z } from "zod";
 import { pageQuery } from "../../lib/pagination.js";
-import { approvalStatus, jobStatus, optionalText, paymentPurpose, paymentStatus, searchText } from "../../shared/schemas.js";
+import { approvalStatus, jobStatus, optionalText, paymentProvider, paymentPurpose, paymentStatus, searchText } from "../../shared/schemas.js";
 
 export const profileListQuery = pageQuery.extend({ status: approvalStatus.optional(), q: searchText });
 export const userListQuery = pageQuery.extend({ q: searchText, role: z.enum(["WORKER", "EMPLOYER", "ADMIN", "NONE"]).optional() });
-export const paymentListQuery = pageQuery.extend({ status: paymentStatus.optional(), purpose: paymentPurpose.optional() });
+export const paymentListQuery = pageQuery.extend({
+  status: paymentStatus.optional(),
+  purpose: paymentPurpose.optional(),
+  provider: paymentProvider.optional(),
+});
 export const jobListQuery = pageQuery.extend({ status: jobStatus.optional(), q: searchText });
 
 export const decisionSchema = z

@@ -31,6 +31,28 @@ const schema = z.object({
   SSLCOMMERZ_STORE_PASSWORD: z.string().optional().default(""),
   SSLCOMMERZ_IS_LIVE: bool,
 
+  // Stripe (international cards). Leave the secret key empty to disable Stripe.
+  STRIPE_SECRET_KEY: z
+    .string()
+    .optional()
+    .default("")
+    .refine((v) => !v || /^(sk|rk)_(test|live)_/.test(v), "must start with sk_test_, sk_live_, rk_test_ or rk_live_"),
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .default("")
+    .refine((v) => !v || v.startsWith("whsec_"), "must start with whsec_"),
+  STRIPE_CURRENCY: z
+    .string()
+    .regex(/^[a-zA-Z]{3}$/, "must be a 3-letter ISO currency code")
+    .default("usd")
+    .transform((v) => v.toLowerCase()),
+  // Stripe prices in STRIPE_CURRENCY (decimals allowed). Stripe rejects charges below its
+  // minimum (about USD 0.50), so these are separate from the BDT prices below.
+  STRIPE_WORKER_MONTHLY_FEE: z.coerce.number().positive().default(1),
+  STRIPE_JOB_POST_FEE: z.coerce.number().positive().default(0.5),
+  STRIPE_HIRE_FEE: z.coerce.number().positive().default(0.5),
+
   WORKER_MONTHLY_FEE: z.coerce.number().int().positive().default(50),
   JOB_POST_FEE: z.coerce.number().int().positive().default(10),
   HIRE_FEE: z.coerce.number().int().positive().default(10),
@@ -58,6 +80,7 @@ export const corsOrigins = env.CORS_ORIGINS.split(",")
   .map((o) => o.trim())
   .filter(Boolean);
 
+/** Headline prices in whole BDT (SSLCommerz). Stripe prices live in modules/payments/pricing.ts. */
 export const pricing = {
   workerMonthly: env.WORKER_MONTHLY_FEE,
   jobPost: env.JOB_POST_FEE,

@@ -1,9 +1,15 @@
 import { env } from "../../config/env.js";
 
-export type ReturnStatus = "success" | "failed" | "cancelled";
+export type ReturnStatus = "success" | "processing" | "failed" | "cancelled";
 
 const COPY: Record<ReturnStatus, { title: string; text: string; color: string; icon: string }> = {
   success: { title: "Payment successful", text: "Taking you back to Your Employee…", color: "#0E8F63", icon: "✓" },
+  processing: {
+    title: "Payment processing",
+    text: "Your payment is being confirmed. We'll notify you as soon as it clears.",
+    color: "#B7791F",
+    icon: "…",
+  },
   failed: { title: "Payment failed", text: "No money was taken. You can try again from the app.", color: "#E5484D", icon: "!" },
   cancelled: { title: "Payment cancelled", text: "You cancelled the payment.", color: "#64748B", icon: "×" },
 };
@@ -12,8 +18,8 @@ const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
 
 /**
- * Tiny branded page shown in the in-app browser after SSLCommerz. It bounces back to the app
- * via deep link, with a visible button in case the browser blocks the automatic redirect.
+ * Tiny branded page shown in the in-app browser after the payment gateway. It bounces back to
+ * the app via deep link, with a visible button in case the browser blocks the automatic redirect.
  */
 export function renderReturnPage(status: ReturnStatus, tranId: string, appUrl: string | null) {
   const target = appUrl ?? `${env.APP_SCHEME}://payment-result`;

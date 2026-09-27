@@ -2,6 +2,7 @@ import { prisma } from "../../db/prisma.js";
 import type { ApprovalStatus, Prisma } from "../../generated/prisma/client.js";
 import { conflict, notFound } from "../../lib/errors.js";
 import { notify } from "../../lib/notify.js";
+import { chargeCurrencies } from "../payments/pricing.js";
 import { categorySelect, ownEmployer, ownWorker } from "../../shared/serializers.js";
 import type { Decision } from "./admin.schemas.js";
 
@@ -28,22 +29,42 @@ export async function getStats() {
       prisma.job.count({ where: { status: "OPEN" } }),
       prisma.hire.count({ where: { status: "ACTIVE" } }),
       prisma.hire.count({ where: { status: "COMPLETED" } }),
-      prisma.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amount: true }, _count: true }),
-      prisma.payment.aggregate({ where: { status: "SUCCESS", paidAt: { gte: monthStart } }, _sum: { amount: true } }),
-      prisma.payment.groupBy({ by: ["purpose"], where: { status: "SUCCESS" }, _sum: { amount: true }, _count: true }),
-      prisma.payment.findMany({ where: { status: "SUCCESS", paidAt: { gte: weekStart } }, select: { amount: true, paidAt: true } }),
+      prisma.payment.groupBy({ by: ["currency"], where: { status: "SUCCESS" }, _sum: { amount: true }, _count: true }),
+      prisma.payment.groupBy({ by: ["currency"], where: { status: "SUCCESS", paidAt: { gte: monthStart } }, _sum: { amount: true } }),
+      prisma.payment.groupBy({ by: ["currency", "purpose"], where: { status: "SUCCESS" }, _sum: { amount: true }, _count: true }),
+      prisma.payment.findMany({ where: { status: "SUCCESS", paidAt: { gte: weekStart } }, select: { amount: true, currency: true, paidAt: true } }),
       prisma.user.count(),
     ]);
 
   const byStatus = (rows: { status: ApprovalStatus; _count: number }[]) =>
     Object.fromEntries(STATUSES.map((s) => [s, rows.find((r) => r.status === s)?._count ?? 0])) as Record<ApprovalStatus, number>;
 
-  // Last 7 Dhaka days (oldest first, today last) for the dashboard chart.
-  const last7Days = Array.from({ length: 7 }, (_, i) => ({ date: dhakaDay(new Date(now.getTime() - (6 - i) * DAY_MS)), amount: 0 }));
-  for (const p of recent) {
-    const day = p.paidAt && last7Days.find((d) => d.date === dhakaDay(p.paidAt!));
-    if (day) day.amount += p.amount;
-  }
+  // Amounts are in minor units and never mixed across currencies: BDT (SSLCommerz) first, then
+  // any other currency an enabled gateway charges in or that has revenue.
+  const others = new Set([...chargeCurrencies(), ...allTime.map((r) => r.currency)]);
+  others.delete("BDT");
+  const days = Array.from({ length: 7 }, (_, i) => dhakaDay(new Date(now.getTime() - (6 - i) * DAY_MS)));
+
+  const currencies = ["BDT", ...[...others].sort()].map((currency) => {
+    const total = allTime.find((r) => r.currency === currency);
+    // Last 7 Dhaka days (oldest first, today last) for the dashboard chart.
+    const last7Days = days.map((date) => ({ date, amount: 0 }));
+    for (const p of recent) {
+      if (p.currency !== currency || !p.paidAt) continue;
+      const day = last7Days.find((d) => d.date === dhakaDay(p.paidAt!));
+      if (day) day.amount += p.amount;
+    }
+    return {
+      currency,
+      total: total?._sum.amount ?? 0,
+      payments: total?._count ?? 0,
+      thisMonth: thisMonth.find((r) => r.currency === currency)?._sum.amount ?? 0,
+      byPurpose: Object.fromEntries(
+        byPurpose.filter((r) => r.currency === currency).map((r) => [r.purpose, { amount: r._sum.amount ?? 0, count: r._count }]),
+      ),
+      last7Days,
+    };
+  });
 
   return {
     users,
@@ -54,11 +75,8 @@ export async function getStats() {
     activeHires,
     completedHires,
     revenue: {
-      total: allTime._sum.amount ?? 0,
-      payments: allTime._count,
-      thisMonth: thisMonth._sum.amount ?? 0,
-      byPurpose: Object.fromEntries(byPurpose.map((r) => [r.purpose, { amount: r._sum.amount ?? 0, count: r._count }])),
-      last7Days,
+      payments: allTime.reduce((sum, r) => sum + r._count, 0),
+      currencies,
     },
   };
 }

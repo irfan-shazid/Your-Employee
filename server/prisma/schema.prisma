@@ -94,6 +94,11 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum PaymentProvider {
+  SSLCOMMERZ
+  STRIPE
+}
+
 // ─── Better Auth ────────────────────────────────────────────────────────────
 
 model User {
@@ -362,24 +367,31 @@ model Review {
 }
 
 model Payment {
-  id             String         @id @default(cuid())
-  tranId         String         @unique
-  userId         String
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose        PaymentPurpose
-  referenceId    String?
-  amount         Int
-  currency       String         @default("BDT")
-  status         PaymentStatus  @default(PENDING)
-  valId          String?
-  bankTranId     String?
-  cardType       String?
-  failureReason  String?
-  appRedirectUrl String?
-  gatewayData    Json?
-  paidAt         DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                String          @id @default(cuid())
+  tranId            String          @unique
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          PaymentProvider @default(SSLCOMMERZ)
+  purpose           PaymentPurpose
+  referenceId       String?
+  /// Amount in the currency's minor unit (poisha for BDT, cents for USD).
+  amount            Int
+  /// ISO 4217 code, upper case.
+  currency          String          @default("BDT")
+  status            PaymentStatus   @default(PENDING)
+  /// Gateway reference: SSLCommerz val_id or Stripe PaymentIntent id.
+  providerRef       String?
+  /// Stripe Checkout Session id.
+  checkoutSessionId String?         @unique
+  bankTranId        String?
+  /// Payment method reported by the gateway (e.g. BKASH-BKash, visa).
+  method            String?
+  failureReason     String?
+  appRedirectUrl    String?
+  gatewayData       Json?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([userId, createdAt])
   @@index([status, createdAt])

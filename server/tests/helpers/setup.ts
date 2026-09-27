@@ -1,6 +1,6 @@
 /**
- * Boots the API against an in-process Postgres (PGlite) with the real migration applied,
- * so `npm test` needs no Docker, no Neon account and no network.
+ * Boots the API against an in-process Postgres (PGlite) with the real migrations applied and
+ * mocked SSLCommerz / Stripe APIs, so `npm test` needs no Docker, no Neon account and no network.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { createServer } from "node:net";
@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { installSslcommerzMock } from "./sslcommerz-mock.js";
+import { installStripeMock, STRIPE_WEBHOOK_SECRET } from "./stripe-mock.js";
 
 export const ADMIN = { email: "admin@test.dev", password: "Admin12345", name: "Test Admin" };
 
@@ -43,10 +44,15 @@ export async function startTestEnvironment() {
     CORS_ORIGINS: "http://localhost:8081",
     SSLCOMMERZ_STORE_ID: "teststore",
     SSLCOMMERZ_STORE_PASSWORD: "testpass",
+    STRIPE_SECRET_KEY: "sk_test_mock",
+    STRIPE_WEBHOOK_SECRET,
+    STRIPE_CURRENCY: "usd",
     GOOGLE_CLIENT_ID: "",
     GOOGLE_CLIENT_SECRET: "",
   });
+  // Gateway clients capture fetch when created, so the mocks go in before the app is imported.
   installSslcommerzMock();
+  installStripeMock();
 
   const { createApp } = await import("../../src/app.js");
   const { prisma } = await import("../../src/db/prisma.js");

@@ -114,16 +114,21 @@ export const adminRoutes = new Hono<AppEnv>()
       await findPage(
         (args) =>
           prisma.payment.findMany({
-            where: { ...(q.status && { status: q.status }), ...(q.purpose && { purpose: q.purpose }) },
+            where: {
+              ...(q.status && { status: q.status }),
+              ...(q.purpose && { purpose: q.purpose }),
+              ...(q.provider && { provider: q.provider }),
+            },
             orderBy: [{ createdAt: "desc" }, { id: "asc" }],
             select: {
               id: true,
               tranId: true,
+              provider: true,
               purpose: true,
               amount: true,
               currency: true,
               status: true,
-              cardType: true,
+              method: true,
               bankTranId: true,
               failureReason: true,
               paidAt: true,
